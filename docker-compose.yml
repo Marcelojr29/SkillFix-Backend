@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  skill_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: skill_user
+      POSTGRES_PASSWORD: skill_password
+      POSTGRES_DB: skill_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
