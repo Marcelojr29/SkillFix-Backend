@@ -50,8 +50,8 @@ export class Tecnico {
   @Column()
   name: string;
 
-  @Column({ type: 'enum', enum: Shift })
-  workday: Shift;
+  @Column()
+  workday: string;
 
   @Column()
   cargo: string;

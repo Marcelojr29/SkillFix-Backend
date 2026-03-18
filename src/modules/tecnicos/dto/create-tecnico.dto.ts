@@ -38,10 +38,10 @@ export class CreateTecnicoDto {
   @IsNotEmpty({ message: 'Nome é obrigatório' })
   name: string;
 
-  @ApiProperty({ enum: Shift, example: '1T' })
-  @IsEnum(Shift)
-  @IsNotEmpty()
-  workday: Shift;
+  @ApiProperty({ example: 'WDC00001', description: 'Matrícula do colaborador' })
+  @IsString()
+  @IsNotEmpty({ message: 'Matrícula (workday) é obrigatória' })
+  workday: string;
 
   @ApiProperty({ example: 'Técnico de Manutenção Elétrica' })
   @IsString()
@@ -58,8 +58,8 @@ export class CreateTecnicoDto {
   @IsNotEmpty()
   area: Area;
 
-  @ApiProperty({ enum: Shift, example: '1T' })
-  @IsEnum(Shift)
+  @ApiProperty({ enum: Shift, example: '1T', description: 'Turno de trabalho' })
+  @IsEnum(Shift, { message: 'Turno deve ser um dos seguintes valores: 1T, 2T, 3T, ADM' })
   @IsNotEmpty()
   shift: Shift;
 

@@ -294,7 +294,7 @@ async function runSeed() {
     console.log('👷 Criando técnicos...');
     const tecnico1 = tecnicoRepository.create({
       name: 'João Silva Santos',
-      workday: Shift.PRIMEIRO,
+      workday: 'WDC00001',
       cargo: 'Operador de Produção',
       senioridade: Senioridade.SENIOR,
       area: Area.PRODUCAO,
@@ -310,7 +310,7 @@ async function runSeed() {
 
     const tecnico2 = tecnicoRepository.create({
       name: 'Maria Oliveira Costa',
-      workday: Shift.PRIMEIRO,
+      workday: 'WDC00002',
       cargo: 'Operador de Produção',
       senioridade: Senioridade.PLENO,
       area: Area.PRODUCAO,
@@ -326,7 +326,7 @@ async function runSeed() {
 
     const tecnico3 = tecnicoRepository.create({
       name: 'Carlos Eduardo Pereira',
-      workday: Shift.SEGUNDO,
+      workday: 'WDC00003',
       cargo: 'Operador de Produção',
       senioridade: Senioridade.PLENO,
       area: Area.PRODUCAO,
@@ -342,7 +342,7 @@ async function runSeed() {
 
     const tecnico4 = tecnicoRepository.create({
       name: 'Ana Paula Rodrigues',
-      workday: Shift.ADMINISTRATIVO,
+      workday: 'WDC00004',
       cargo: 'Técnico de Manutenção',
       senioridade: Senioridade.ESPECIALISTA,
       area: Area.MANUTENCAO,
