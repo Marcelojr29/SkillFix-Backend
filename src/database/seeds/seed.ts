@@ -76,13 +76,13 @@ async function runSeed() {
     await userRepository.save(adminUser);
     console.log(`✅ Admin criado: ${adminUser.email} / Admin@123\n`);
 
-    // 2. Criar Supervisor
+    // 2. Criar Supervisor (com permissão Master)
     console.log('👤 Criando usuário supervisor...');
     const supervisorUser = userRepository.create({
       email: 'supervisor@skillfix.com',
       password: 'Supervisor@123',
       name: 'João Supervisor',
-      role: UserRole.SUPERVISOR,
+      role: UserRole.MASTER,
       isActive: true,
     });
     await userRepository.save(supervisorUser);

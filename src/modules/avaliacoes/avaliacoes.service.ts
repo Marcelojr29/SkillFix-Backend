@@ -28,8 +28,9 @@ export class AvaliacoesService {
     if (!criteria || criteria.length === 0) return 0;
 
     const totalScore = criteria.reduce((sum, criterion) => {
-      const percentage = (criterion.score / criterion.maxScore) * 100;
-      const weightedScore = (percentage * criterion.weight) / 100;
+      // Média ponderada mantendo a escala original (0-5)
+      const normalized = criterion.score; // já está na escala 0-maxScore
+      const weightedScore = (normalized * criterion.weight) / 100;
       return sum + weightedScore;
     }, 0);
 
@@ -122,6 +123,16 @@ export class AvaliacoesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findByTecnico(tecnicoId: string) {
+    const evaluations = await this.evaluationsRepository.find({
+      where: { tecnicoId },
+      relations: ['tecnico', 'evaluator', 'reviewer', 'criteria'],
+      order: { evaluationDate: 'DESC' },
+    });
+
+    return evaluations;
   }
 
   async findOne(id: string): Promise<Evaluation> {

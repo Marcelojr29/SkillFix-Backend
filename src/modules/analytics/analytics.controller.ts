@@ -56,13 +56,25 @@ export class AnalyticsController {
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'quarter', required: false, type: Number })
   @ApiQuery({ name: 'year', required: false, type: Number })
+  @ApiQuery({
+    name: 'senioridade',
+    required: false,
+    enum: ['AUXILIAR', 'JUNIOR', 'PLENO', 'SENIOR', 'ESPECIALISTA'],
+    description: 'Filtrar por senioridade',
+  })
   @ApiResponse({ status: 200, description: 'Top performers' })
   getTopPerformers(
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
     @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+    @Query('senioridade') senioridade?: string,
   ) {
-    return this.analyticsService.getTopPerformers(limit, quarter, year);
+    return this.analyticsService.getTopPerformers(
+      limit,
+      quarter,
+      year,
+      senioridade,
+    );
   }
 
   @Get('skills-coverage')
@@ -98,5 +110,69 @@ export class AnalyticsController {
   @ApiResponse({ status: 200, description: 'Skills com necessidade de melhoria' })
   getSkillGaps(@Query('teamId') teamId?: string) {
     return this.analyticsService.getSkillGaps(teamId);
+  }
+
+  @Get('skills-by-shift')
+  @ApiOperation({ summary: 'Comparação de skills por turno' })
+  @ApiQuery({
+    name: 'teamId',
+    required: false,
+    type: String,
+    description: 'Filtrar por time específico',
+  })
+  @ApiQuery({
+    name: 'quarter',
+    required: false,
+    type: Number,
+    description: 'Trimestre (1-4)',
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    type: Number,
+    description: 'Ano',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Comparação de skills por turno',
+  })
+  getSkillsByShift(
+    @Query('teamId') teamId?: string,
+    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+  ) {
+    return this.analyticsService.getSkillsByShift(teamId, quarter, year);
+  }
+
+  @Get('machines-by-shift')
+  @ApiOperation({ summary: 'Comparação de máquinas por turno' })
+  @ApiQuery({
+    name: 'teamId',
+    required: false,
+    type: String,
+    description: 'Filtrar por time específico',
+  })
+  @ApiQuery({
+    name: 'quarter',
+    required: false,
+    type: Number,
+    description: 'Trimestre (1-4)',
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    type: Number,
+    description: 'Ano',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Comparação de máquinas por turno',
+  })
+  getMachinesByShift(
+    @Query('teamId') teamId?: string,
+    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+  ) {
+    return this.analyticsService.getMachinesByShift(teamId, quarter, year);
   }
 }

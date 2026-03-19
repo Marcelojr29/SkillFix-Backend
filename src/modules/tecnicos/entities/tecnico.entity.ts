@@ -102,6 +102,9 @@ export class Tecnico {
   @OneToMany('QuarterlyNote', (note: any) => note.tecnico, { cascade: true })
   quarterlyNotes: any[];
 
+  @OneToMany('Evaluation', (evaluation: any) => evaluation.tecnico)
+  evaluations: any[];
+
   @CreateDateColumn()
   createdAt: Date;
 

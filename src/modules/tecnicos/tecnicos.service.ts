@@ -117,7 +117,20 @@ export class TecnicosService {
   async findOne(id: string): Promise<Tecnico> {
     const tecnico = await this.tecnicosRepository.findOne({
       where: { id },
-      relations: ['team', 'subtime', 'skills', 'skills.skill', 'quarterlyNotes'],
+      relations: [
+        'team',
+        'subtime',
+        'skills',
+        'skills.skill',
+        'quarterlyNotes',
+        'evaluations',
+        'evaluations.criteria',
+      ],
+      order: {
+        evaluations: {
+          evaluationDate: 'DESC',
+        },
+      },
     });
 
     if (!tecnico) {

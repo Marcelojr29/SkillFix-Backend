@@ -30,15 +30,15 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
-@ApiTags('Avaliacoes')
+@ApiTags('Evaluations')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('avaliacoes')
+@Controller('evaluations')
 export class AvaliacoesController {
   constructor(private readonly avaliacoesService: AvaliacoesService) {}
 
   @Post()
-  @Roles(UserRole.MASTER, UserRole.SUPERVISOR)
+  @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Criar nova avaliação' })
   @ApiResponse({ status: 201, description: 'Avaliação criada' })
   create(@Body() createAvaliacaoDto: CreateAvaliacaoDto) {
@@ -52,6 +52,13 @@ export class AvaliacoesController {
     return this.avaliacoesService.findAll(query);
   }
 
+  @Get('tecnico/:tecnicoId')
+  @ApiOperation({ summary: 'Listar avaliações de um técnico' })
+  @ApiResponse({ status: 200, description: 'Avaliações do técnico' })
+  findByTecnico(@Param('tecnicoId', ParseUUIDPipe) tecnicoId: string) {
+    return this.avaliacoesService.findByTecnico(tecnicoId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar avaliação por ID' })
   @ApiResponse({ status: 200, description: 'Avaliação encontrada' })
@@ -60,7 +67,7 @@ export class AvaliacoesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.MASTER, UserRole.SUPERVISOR)
+  @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Atualizar avaliação (somente rascunhos)' })
   @ApiResponse({ status: 200, description: 'Avaliação atualizada' })
   update(
@@ -79,7 +86,7 @@ export class AvaliacoesController {
   }
 
   @Post(':id/submit')
-  @Roles(UserRole.MASTER, UserRole.SUPERVISOR)
+  @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Submeter avaliação para revisão' })
   @ApiResponse({ status: 200, description: 'Avaliação submetida' })
   submit(

@@ -31,7 +31,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ enum: UserRole, default: UserRole.SUPERVISOR })
+  @ApiProperty({ enum: UserRole, default: UserRole.MASTER })
   @IsEnum(UserRole)
   @IsOptional()
   role?: UserRole;

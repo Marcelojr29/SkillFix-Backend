@@ -12,7 +12,6 @@ import * as bcrypt from 'bcrypt';
 
 export enum UserRole {
   MASTER = 'master',
-  SUPERVISOR = 'supervisor',
 }
 
 export enum Workday {
@@ -38,7 +37,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.SUPERVISOR,
+    default: UserRole.MASTER,
   })
   role: UserRole;
 
