@@ -27,6 +27,7 @@ export class AuthService {
 
     const user = await this.usersRepository.findOne({
       where: { email },
+      relations: ['tecnico'],
     });
 
     if (!user || !user.isActive) {
@@ -56,6 +57,15 @@ export class AuthService {
         name: user.name,
         role: user.role,
         workday: user.workday,
+        tecnicoId: user.tecnicoId,
+        tecnico: user.tecnico
+          ? {
+              id: user.tecnico.id,
+              name: user.tecnico.name,
+              senioridade: user.tecnico.senioridade,
+              area: user.tecnico.area,
+            }
+          : undefined,
       },
     };
   }
@@ -72,6 +82,7 @@ export class AuthService {
 
       const user = await this.usersRepository.findOne({
         where: { id: payload.sub, isActive: true },
+        relations: ['tecnico'],
       });
 
       if (!user || !user.refreshToken) {
@@ -97,6 +108,15 @@ export class AuthService {
           name: user.name,
           role: user.role,
           workday: user.workday,
+          tecnicoId: user.tecnicoId,
+          tecnico: user.tecnico
+            ? {
+                id: user.tecnico.id,
+                name: user.tecnico.name,
+                senioridade: user.tecnico.senioridade,
+                area: user.tecnico.area,
+              }
+            : undefined,
         },
       };
     } catch (error) {
@@ -109,7 +129,10 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string): Promise<User | null> {
-    const user = await this.usersRepository.findOne({ where: { email } });
+    const user = await this.usersRepository.findOne({
+      where: { email },
+      relations: ['tecnico'],
+    });
 
     if (user && (await user.validatePassword(password))) {
       return user;
@@ -121,6 +144,7 @@ export class AuthService {
   async getProfile(userId: string): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { id: userId },
+      relations: ['tecnico'],
     });
 
     if (!user) {
@@ -138,6 +162,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      tecnicoId: user.tecnicoId,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

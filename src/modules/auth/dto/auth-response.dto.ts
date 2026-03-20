@@ -18,6 +18,13 @@ export class AuthResponseDto {
       name: 'Maria Silva',
       role: 'master',
       workday: 'diurno',
+      tecnicoId: '456e7890-e89b-12d3-a456-426614174001',
+      tecnico: {
+        id: '456e7890-e89b-12d3-a456-426614174001',
+        name: 'Maria Silva',
+        senioridade: 'Supervisor',
+        area: 'Produção',
+      },
     },
   })
   user: {
@@ -26,5 +33,12 @@ export class AuthResponseDto {
     name: string;
     role: string;
     workday?: string;
+    tecnicoId?: string;
+    tecnico?: {
+      id: string;
+      name: string;
+      senioridade: string;
+      area: string;
+    };
   };
 }

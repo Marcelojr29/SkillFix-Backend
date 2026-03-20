@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 
 export enum Shift {
@@ -77,6 +78,12 @@ export class Tecnico {
   @Column({ type: 'date' })
   joinDate: Date;
 
+  @Column({ unique: true, nullable: true })
+  email?: string;
+
+  @Column({ name: 'has_user_account', default: false })
+  hasUserAccount: boolean;
+
   @Column({ default: true })
   status: boolean;
 
@@ -104,6 +111,9 @@ export class Tecnico {
 
   @OneToMany('Evaluation', (evaluation: any) => evaluation.tecnico)
   evaluations: any[];
+
+  @OneToOne('User', (user: any) => user.tecnico, { nullable: true })
+  user?: any;
 
   @CreateDateColumn()
   createdAt: Date;

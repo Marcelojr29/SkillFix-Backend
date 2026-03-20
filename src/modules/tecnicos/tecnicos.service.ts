@@ -4,9 +4,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Tecnico } from './entities/tecnico.entity';
+import { Repository, DataSource } from 'typeorm';
+import { Tecnico, Senioridade } from './entities/tecnico.entity';
 import { TecnicoSkill } from './entities/tecnico-skill.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { CreateTecnicoDto } from './dto/create-tecnico.dto';
 import { UpdateTecnicoDto } from './dto/update-tecnico.dto';
 import { QueryTecnicoDto } from './dto/query-tecnico.dto';
@@ -20,27 +21,88 @@ export class TecnicosService {
     private tecnicosRepository: Repository<Tecnico>,
     @InjectRepository(TecnicoSkill)
     private tecnicoSkillsRepository: Repository<TecnicoSkill>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    private dataSource: DataSource,
   ) {}
 
   async create(createTecnicoDto: CreateTecnicoDto): Promise<Tecnico> {
-    const { skills, ...tecnicoData } = createTecnicoDto;
+    const { skills, email, password, ...tecnicoData } = createTecnicoDto;
 
-    const tecnico = this.tecnicosRepository.create(tecnicoData);
-    const savedTecnico = await this.tecnicosRepository.save(tecnico);
+    // Validação: se é Supervisor, email e password são obrigatórios
+    if (tecnicoData.senioridade === Senioridade.SUPERVISOR) {
+      if (!email || !password) {
+        throw new BadRequestException(
+          'E-mail e senha são obrigatórios para cadastrar um Supervisor',
+        );
+      }
 
-    if (skills && skills.length > 0) {
-      const tecnicoSkills = skills.map((skill) =>
-        this.tecnicoSkillsRepository.create({
-          tecnicoId: savedTecnico.id,
-          skillId: skill.skillId,
-          score: skill.score,
-          notes: skill.notes,
-        }),
-      );
-      await this.tecnicoSkillsRepository.save(tecnicoSkills);
+      // Verificar se e-mail já existe
+      const existingUser = await this.usersRepository.findOne({
+        where: { email },
+      });
+      if (existingUser) {
+        throw new BadRequestException('Este e-mail já está em uso');
+      }
     }
 
-    return this.findOne(savedTecnico.id);
+    // Usar transaction para garantir atomicidade
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Criar técnico
+      const tecnico = queryRunner.manager.create(Tecnico, {
+        ...tecnicoData,
+        email: email || null,
+        hasUserAccount: false,
+      });
+      const savedTecnico = await queryRunner.manager.save(tecnico);
+
+      // Se for supervisor, criar conta de usuário
+      if (
+        tecnicoData.senioridade === Senioridade.SUPERVISOR &&
+        email &&
+        password
+      ) {
+        const user = queryRunner.manager.create(User, {
+          email,
+          password, // Será hasheado pelo @BeforeInsert no User.entity
+          name: tecnicoData.name,
+          role: UserRole.MASTER,
+          tecnicoId: savedTecnico.id,
+        });
+        await queryRunner.manager.save(user);
+
+        // Atualizar flag no técnico
+        savedTecnico.hasUserAccount = true;
+        await queryRunner.manager.save(savedTecnico);
+      }
+
+      // Criar skills se fornecidas
+      if (skills && skills.length > 0) {
+        const tecnicoSkills = skills.map((skill) =>
+          queryRunner.manager.create(TecnicoSkill, {
+            tecnicoId: savedTecnico.id,
+            skillId: skill.skillId,
+            score: skill.score,
+            notes: skill.notes,
+          }),
+        );
+        await queryRunner.manager.save(tecnicoSkills);
+      }
+
+      await queryRunner.commitTransaction();
+
+      // Retornar técnico com todas as relações
+      return this.findOne(savedTecnico.id);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAll(query: QueryTecnicoDto) {

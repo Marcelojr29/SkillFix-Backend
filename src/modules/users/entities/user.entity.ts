@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   BeforeInsert,
   BeforeUpdate,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
@@ -57,6 +59,13 @@ export class User {
   @Column({ nullable: true })
   @Exclude()
   refreshToken?: string;
+
+  @Column({ name: 'tecnico_id', nullable: true })
+  tecnicoId?: string;
+
+  @OneToOne('Tecnico', { nullable: true })
+  @JoinColumn({ name: 'tecnico_id' })
+  tecnico?: any;
 
   @CreateDateColumn()
   createdAt: Date;

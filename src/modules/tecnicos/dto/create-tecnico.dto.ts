@@ -11,6 +11,9 @@ import {
   IsNumber,
   Min,
   Max,
+  IsEmail,
+  MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Shift, Gender, Area, Senioridade } from '../entities/tecnico.entity';
@@ -87,6 +90,29 @@ export class CreateTecnicoDto {
   @IsUUID()
   @IsOptional()
   subtimeId?: string;
+
+  @ApiProperty({
+    example: 'supervisor@empresa.com',
+    description: 'E-mail do supervisor (obrigatório se senioridade = Supervisor)',
+    required: false,
+  })
+  @ValidateIf((o) => o.senioridade === Senioridade.SUPERVISOR)
+  @IsNotEmpty({ message: 'E-mail é obrigatório para Supervisores' })
+  @IsEmail({}, { message: 'E-mail inválido' })
+  @IsOptional()
+  email?: string;
+
+  @ApiProperty({
+    example: 'Senha@123',
+    description: 'Senha do supervisor (obrigatório se senioridade = Supervisor)',
+    required: false,
+  })
+  @ValidateIf((o) => o.senioridade === Senioridade.SUPERVISOR)
+  @IsNotEmpty({ message: 'Senha é obrigatória para Supervisores' })
+  @IsString()
+  @MinLength(8, { message: 'Senha deve ter no mínimo 8 caracteres' })
+  @IsOptional()
+  password?: string;
 
   @ApiProperty({ type: [SkillInput], required: false })
   @IsArray()
