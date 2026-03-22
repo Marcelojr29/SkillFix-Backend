@@ -28,6 +28,7 @@ import { QueryTecnicoDto } from './dto/query-tecnico.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Tecnicos')
@@ -36,6 +37,50 @@ import { UserRole } from '../users/entities/user.entity';
 @Controller('tecnicos')
 export class TecnicosController {
   constructor(private readonly tecnicosService: TecnicosService) {}
+
+  @Post('with-photo')
+  @Roles(UserRole.MASTER)
+  @UseInterceptors(FileInterceptor('photo'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Criar novo técnico com foto' })
+  @ApiResponse({ status: 201, description: 'Técnico criado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        photo: {
+          type: 'string',
+          format: 'binary',
+          description: 'Foto do técnico (opcional)',
+        },
+        name: { type: 'string', example: 'João Silva' },
+        workday: { type: 'string', example: 'WDC00001' },
+        cargo: { type: 'string', example: 'Técnico de Manutenção Elétrica' },
+        senioridade: { type: 'string', enum: ['Auxiliar', 'Junior', 'Pleno', 'Sênior', 'Especialista', 'Coordenador', 'Supervisor'] },
+        area: { type: 'string', enum: ['Produção', 'Manutenção', 'Qualidade', 'Engenharia', 'Logística', 'Administrativa', 'Outro'] },
+        shift: { type: 'string', enum: ['1T', '2T', '3T', 'ADM'] },
+        department: { type: 'string', example: 'Manutenção Elétrica' },
+        gender: { type: 'string', enum: ['M', 'F', 'O'] },
+        joinDate: { type: 'string', format: 'date', example: '2020-01-15' },
+        teamId: { type: 'string', format: 'uuid' },
+        subtimeId: { type: 'string', format: 'uuid' },
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string' },
+        skills: { 
+          type: 'string', 
+          description: 'JSON string array de skills: [{"skillId": "uuid", "score": 85.5, "notes": "opcional"}]',
+        },
+      },
+      required: ['name', 'workday', 'cargo', 'senioridade', 'area', 'shift', 'department', 'gender', 'joinDate'],
+    },
+  })
+  createWithPhoto(
+    @Body() body: any,
+    @UploadedFile() file?: any,
+  ) {
+    return this.tecnicosService.createWithPhoto(body, file);
+  }
 
   @Post()
   @Roles(UserRole.MASTER)
@@ -66,19 +111,25 @@ export class TecnicosController {
   @ApiOperation({ summary: 'Atualizar técnico' })
   @ApiResponse({ status: 200, description: 'Técnico atualizado' })
   @ApiResponse({ status: 404, description: 'Técnico não encontrado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para editar este técnico' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTecnicoDto: UpdateTecnicoDto,
+    @GetUser('id') userId: string,
   ) {
-    return this.tecnicosService.update(id, updateTecnicoDto);
+    return this.tecnicosService.update(id, updateTecnicoDto, userId);
   }
 
   @Delete(':id')
   @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Deletar técnico (soft delete)' })
   @ApiResponse({ status: 200, description: 'Técnico desativado' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tecnicosService.remove(id);
+  @ApiResponse({ status: 403, description: 'Sem permissão para deletar este técnico' })
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser('id') userId: string,
+  ) {
+    return this.tecnicosService.remove(id, userId);
   }
 
   @Post(':id/photo')

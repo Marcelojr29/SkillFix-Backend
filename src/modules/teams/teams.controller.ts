@@ -16,6 +16,7 @@ import { UpdateTeamDto } from './dto/update-team.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Teams')
@@ -66,18 +67,24 @@ export class TeamsController {
   @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Atualizar time' })
   @ApiResponse({ status: 200, description: 'Time atualizado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para editar este time' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTeamDto: UpdateTeamDto,
+    @GetUser('id') userId: string,
   ) {
-    return this.teamsService.update(id, updateTeamDto);
+    return this.teamsService.update(id, updateTeamDto, userId);
   }
 
   @Delete(':id')
   @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Deletar time' })
   @ApiResponse({ status: 200, description: 'Time desativado' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.teamsService.remove(id);
+  @ApiResponse({ status: 403, description: 'Sem permissão para deletar este time' })
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser('id') userId: string,
+  ) {
+    return this.teamsService.remove(id, userId);
   }
 }
