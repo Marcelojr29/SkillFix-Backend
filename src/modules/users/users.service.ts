@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 export type UserResponse = {
@@ -177,26 +179,26 @@ export class UsersService {
     return { message: 'Senha alterada com sucesso' };
   }
 
-  async resetPassword(
-    resetPasswordDto: ResetPasswordDto,
-  ): Promise<{ message: string; temporaryPassword: string }> {
-    const user = await this.usersRepository.findOne({
-      where: { email: resetPasswordDto.email },
-    });
+  // async resetPassword(
+  //   resetPasswordDto: ResetPasswordDto,
+  // ): Promise<{ message: string; temporaryPassword: string }> {
+  //   const user = await this.usersRepository.findOne({
+  //     where: { email: resetPasswordDto.email },
+  //   });
 
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
+  //   if (!user) {
+  //     throw new NotFoundException('Usuário não encontrado');
+  //   }
 
-    const temporaryPassword = this.generateTemporaryPassword();
-    user.password = temporaryPassword;
-    await this.usersRepository.save(user);
+  //   const temporaryPassword = this.generateTemporaryPassword();
+  //   user.password = temporaryPassword;
+  //   await this.usersRepository.save(user);
 
-    return {
-      message: 'Senha resetada com sucesso',
-      temporaryPassword,
-    };
-  }
+  //   return {
+  //     message: 'Senha resetada com sucesso',
+  //     temporaryPassword,
+  //   };
+  // }
 
   async toggleStatus(id: string): Promise<UserResponse> {
     const user = await this.usersRepository.findOne({ where: { id } });
@@ -223,9 +225,89 @@ export class UsersService {
     return { message: 'Usuário deletado com sucesso' };
   }
 
+  /**
+   * Solicita reset de senha (esqueci minha senha)
+   * Gera uma senha temporária e retorna (ou enviaria por email)
+   */
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<{
+    message: string;
+    temporaryPassword?: string;
+    email: string
+  }> {
+    const { email } = forgotPasswordDto;
+
+    const user = await this.usersRepository.findOne({
+      where: { email, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado ou inativo');
+    }
+
+    const temporaryPassword = this.generateTemporaryPassword();
+    user.password = temporaryPassword;
+    user.refreshToken = undefined;
+    await this.usersRepository.save(user);
+
+    return {
+      message: 'Senha temporária gerada com sucesso',
+      temporaryPassword,
+      email: user.email,
+    };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    const { email, newPassword } = resetPasswordDto;
+
+    const user = await this.usersRepository.findOne({
+      where: { email, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('A nova senha deve ser diferente da atual');
+    }
+
+    user.password = newPassword;
+    user.refreshToken = undefined;
+    await this.usersRepository.save(user);
+
+    return {
+      message: 'Senha resetada com sucesso!',
+    };
+  }
+
+  async adminResetPassword(resetPasswordDto: ResetPasswordDto): Promise<{
+    message: string;
+    temporaryPassword: string;
+  }> {
+    const { email } = resetPasswordDto;
+
+    const user = await this.usersRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    const temporaryPassword = this.generateTemporaryPassword();
+    user.password = temporaryPassword;
+    user.refreshToken = undefined;
+    await this.usersRepository.save(user);
+
+    return {
+      message: 'Senha resetada com sucesso!',
+      temporaryPassword,
+    };
+  }
+
   private generateTemporaryPassword(): string {
-    const chars =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%';
     let password = '';
     for (let i = 0; i < 12; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));

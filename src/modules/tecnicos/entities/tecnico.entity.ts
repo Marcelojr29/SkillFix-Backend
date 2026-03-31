@@ -101,6 +101,13 @@ export class Tecnico {
   @JoinColumn({ name: 'subtimeId' })
   subtime?: any;
 
+  @Column({ name: 'created_by', nullable: true })
+  createdById?: string;
+
+  @ManyToOne('User')
+  @JoinColumn({ name: 'created_by' })
+  createdBy?: any;
+
   @OneToMany('TecnicoSkill', (tecnicoSkill: any) => tecnicoSkill.tecnico, {
     cascade: true,
   })

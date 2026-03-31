@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Tecnico } from '../tecnicos/entities/tecnico.entity';
 import { TecnicoSkill } from '../tecnicos/entities/tecnico-skill.entity';
 import { QuarterlyNote } from '../quarterly-notes/entities/quarterly-note.entity';
 import { Evaluation } from '../avaliacoes/entities/evaluation.entity';
 import { Machine } from '../machines/entities/machine.entity';
 import { Skill } from '../skills/entities/skill.entity';
+import { Team } from '../teams/entities/team.entity';
 
 @Injectable()
 export class AnalyticsService {
@@ -23,6 +24,9 @@ export class AnalyticsService {
     private machinesRepository: Repository<Machine>,
     @InjectRepository(Skill)
     private skillsRepository: Repository<Skill>,
+    @InjectRepository(Team)
+    private teamsRepository: Repository<Team>,
+    private dataSource: DataSource,
   ) {}
 
   async getDashboard(teamId?: string) {
@@ -35,6 +39,7 @@ export class AnalyticsService {
     }
 
     const totalTecnicos = await tecnicosQuery.getCount();
+    const activeTecnicos = totalTecnicos;
 
     const tecnicosByShift = await tecnicosQuery
       .select('tecnico.shift', 'shift')
@@ -48,6 +53,18 @@ export class AnalyticsService {
       .groupBy('tecnico.senioridade')
       .getRawMany();
 
+    const tecnicosByGender = await tecnicosQuery
+      .select('tecnico.gender', 'gender')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('tecnico.gender')
+      .getRawMany();
+
+    const tecnicosByArea = await tecnicosQuery
+      .select('tecnico.area', 'area')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('tecnico.area')
+      .getRawMany();
+
     const avgQuarterlyScore = await this.quarterlyNotesRepository
       .createQueryBuilder('note')
       .select('AVG(note.score)', 'avg')
@@ -57,9 +74,20 @@ export class AnalyticsService {
     const totalEvaluations = await this.evaluationsRepository
       .createQueryBuilder('evaluation')
       .getCount();
+    
+    const totalTeams = await this.teamsRepository
+      .createQueryBuilder('team')
+      .where('team.status = :status', { status: true })
+      .getCount();
+
+    const totalMachines = await this.machinesRepository
+      .createQueryBuilder('machine')
+      .where('machine.status = :status', { status: true })
+      .getCount();
 
     return {
       totalTecnicos,
+      activeTecnicos,
       tecnicosByShift: tecnicosByShift.map((item) => ({
         shift: item.shift,
         count: parseInt(item.count),
@@ -68,8 +96,18 @@ export class AnalyticsService {
         senioridade: item.senioridade,
         count: parseInt(item.count),
       })),
+      tecnicosByGender: tecnicosByGender.map((item) => ({
+        gender: item.gender,
+        count: parseInt(item.count),
+      })),
+      tecnicosByArea: tecnicosByArea.map((item) => ({
+        area: item.area,
+        count: parseInt(item.count),
+      })),
       avgQuarterlyScore: parseFloat(avgQuarterlyScore?.avg || 0).toFixed(2),
       totalEvaluations,
+      totalTeams,
+      totalMachines,
     };
   }
 

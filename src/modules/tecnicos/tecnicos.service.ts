@@ -14,6 +14,18 @@ import { UpdateTecnicoDto } from './dto/update-tecnico.dto';
 import { QueryTecnicoDto } from './dto/query-tecnico.dto';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { Multer } from 'multer';
+
+// Adicione a definição do tipo PaginatedResponse
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 @Injectable()
 export class TecnicosService {
@@ -28,7 +40,9 @@ export class TecnicosService {
     private ownershipService: OwnershipService,
   ) {}
 
-  async create(createTecnicoDto: CreateTecnicoDto): Promise<Tecnico> {
+  async create(createTecnicoDto: CreateTecnicoDto, userId: string): Promise<Tecnico> {
+    await this.ownershipService.validateTecnicoCreation(createTecnicoDto.teamId, userId);
+
     const { skills, email, password, ...tecnicoData } = createTecnicoDto;
 
     // Validação: se é Supervisor, email e password são obrigatórios
@@ -59,6 +73,7 @@ export class TecnicosService {
         ...tecnicoData,
         email: email || null,
         hasUserAccount: false,
+        createdById: userId,
       });
       const savedTecnico = await queryRunner.manager.save(tecnico);
 
@@ -254,7 +269,7 @@ export class TecnicosService {
     }
   }
 
-  async findAll(query: QueryTecnicoDto) {
+  async findAll(query: QueryTecnicoDto, userId: string): Promise<PaginatedResponse<Tecnico>> {
     const {
       page = 1,
       limit = 10,
@@ -274,7 +289,13 @@ export class TecnicosService {
       .leftJoinAndSelect('tecnico.team', 'team')
       .leftJoinAndSelect('tecnico.subtime', 'subtime')
       .leftJoinAndSelect('tecnico.skills', 'skills')
-      .leftJoinAndSelect('skills.skill', 'skill');
+      .leftJoinAndSelect('skills.skill', 'skill')
+      .where('tecnico.status = :status', { status });
+
+    const isAdmin = await this.ownershipService.isAdmin(userId);
+    if (!isAdmin) {
+      queryBuilder.andWhere('tecnico.createdById = :userId', { userId });
+    }
 
     if (search) {
       queryBuilder.andWhere('tecnico.name ILIKE :search', {
@@ -397,14 +418,26 @@ export class TecnicosService {
     return { message: 'Técnico desativado com sucesso' };
   }
 
-  async uploadPhoto(id: string, file: any): Promise<{ photoUrl: string }> {
+  async uploadPhoto(id: string, file: Express.Multer.File): Promise<{ photoUrl: string }> {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
     }
 
+    const allowedMimes = ['image/jpg', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedMimes.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Formato de imagem inválido. Use JPG, PNG, WEBP ou GIF'
+      );
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('Imagem muito grande. Tamanho máximo: 5MB');
+    }
+
     const tecnico = await this.findOne(id);
+
     const uploadDir = path.join(process.cwd(), 'uploads', 'photos');
-    
     try {
       await fs.access(uploadDir);
     } catch {
@@ -417,10 +450,11 @@ export class TecnicosService {
 
     await fs.writeFile(filePath, file.buffer);
 
-    tecnico.photo = `uploads/photos/${fileName}`;
+    const photoPath = `uploads/photos/${fileName}`;
+    tecnico.photo = photoPath;
     await this.tecnicosRepository.save(tecnico);
 
-    return { photoUrl: tecnico.photo };
+    return { photoUrl: photoPath };
   }
 
   async getSkills(id: string) {

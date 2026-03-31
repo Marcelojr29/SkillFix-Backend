@@ -8,6 +8,8 @@ import { QuarterlyNote } from '../quarterly-notes/entities/quarterly-note.entity
 import { Evaluation } from '../avaliacoes/entities/evaluation.entity';
 import { Machine } from '../machines/entities/machine.entity';
 import { Skill } from '../skills/entities/skill.entity';
+import { Team } from '../teams/entities/team.entity';
+import { TeamsModule } from '../teams/teams.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { Skill } from '../skills/entities/skill.entity';
       Evaluation,
       Machine,
       Skill,
+      Team,
     ]),
+    TeamsModule,
   ],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],

@@ -10,6 +10,8 @@ import {
   ParseUUIDPipe,
   UseGuards,
   Request,
+  HttpCode,
+  HttpStatus
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -17,12 +19,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from './entities/user.entity';
 import { GetUser } from '../auth/decorators/get-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -110,6 +114,19 @@ export class UsersController {
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     return this.usersService.changePassword(userId, changePasswordDto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Solicitar reset de senha',
+    description: 'Envia um email com instruções para resetar a senha (ou retorna senha temporária)'
+  })
+  @ApiResponse({ status: 200, description: 'Email enviado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.usersService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('reset-password')

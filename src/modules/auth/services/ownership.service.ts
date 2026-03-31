@@ -6,23 +6,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Team } from '../../teams/entities/team.entity';
 
-/**
- * Helper service para validações de ownership
- * Usado para garantir isolamento de dados entre supervisores
- */
 @Injectable()
 export class OwnershipService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    @InjectRepository(Team)
-    private teamsRepository: Repository<Team>,
   ) {}
 
   /**
    * Verifica se o usuário é admin (não tem tecnicoId)
+   * Admin vê tudo, outros usuários só veem seus próprios dados
    */
   async isAdmin(userId: string): Promise<boolean> {
     if (!userId) return false;
@@ -32,98 +26,78 @@ export class OwnershipService {
       select: ['id', 'tecnicoId'],
     });
     
+    // Se não tem tecnicoId, é admin (acesso total)
+    // Se tem tecnicoId, é supervisor (acesso restrito)
     return !user?.tecnicoId;
   }
 
   /**
-   * Obtém o tecnicoId do usuário (para supervisores)
-   */
-  async getUserTecnicoId(userId: string): Promise<string | null> {
-    if (!userId) return null;
-    
-    const user = await this.usersRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'tecnicoId'],
-    });
-    
-    return user?.tecnicoId || null;
-  }
-
-  /**
-   * Obtém IDs dos times supervisionados pelo usuário
-   */
-  async getSupervisorTeamIds(userId: string): Promise<string[]> {
-    const tecnicoId = await this.getUserTecnicoId(userId);
-    if (!tecnicoId) return [];
-
-    const teams = await this.teamsRepository.find({
-      where: { supervisorId: tecnicoId },
-      select: ['id'],
-    });
-
-    return teams.map((t) => t.id);
-  }
-
-  /**
-   * Valida se o supervisor tem acesso a um time específico
+   * Valida se o usuário tem acesso a um time
+   * Regra: Admin vê tudo, outros só veem times que CRIARAM
    */
   async validateTeamOwnership(
     teamId: string,
     userId: string,
+    teamRepository: Repository<any>,
   ): Promise<void> {
     // Admin pode tudo
     if (await this.isAdmin(userId)) {
       return;
     }
 
-    const supervisorTeamIds = await this.getSupervisorTeamIds(userId);
-    
-    if (!supervisorTeamIds.includes(teamId)) {
+    const team = await teamRepository.findOne({
+      where: { id: teamId },
+      select: ['id', 'createdById'],
+    });
+
+    if (!team) {
+      throw new NotFoundException('Time não encontrado');
+    }
+
+    // Supervisor só pode acessar times que ele criou
+    if (team.createdById !== userId) {
       throw new ForbiddenException(
-        'Você não tem permissão para acessar este time',
+        'Você não tem permissão para acessar este time. Apenas o criador do time pode visualizá-lo e editá-lo.',
       );
     }
   }
 
   /**
    * Valida se o supervisor tem acesso a um técnico específico
+   * Regra: Admin vê tudo, outros só veem técnicos que CRIARAM
    */
   async validateTecnicoOwnership(
     tecnicoId: string,
     userId: string,
     tecnicosRepository: Repository<any>,
   ): Promise<void> {
-    // Admin pode tudo
     if (await this.isAdmin(userId)) {
       return;
     }
 
     const tecnico = await tecnicosRepository.findOne({
       where: { id: tecnicoId },
-      select: ['id', 'teamId'],
+      select: ['id', 'createdById'],
     });
 
     if (!tecnico) {
       throw new NotFoundException('Técnico não encontrado');
     }
 
-    if (!tecnico.teamId) {
+    if (tecnico.createdById !== userId) {
       throw new ForbiddenException(
-        'Este técnico não está associado a nenhum time',
+        'Você não tem permissão para acessar este técnico. Apenas o criador pode visualizá-lo e editá-lo.',
       );
     }
-
-    await this.validateTeamOwnership(tecnico.teamId, userId);
   }
 
   /**
-   * Valida se o supervisor pode criar/editar um técnico em um time específico
+   * Valida se o supervisor pode criar/editar um técnico
    */
   async validateTecnicoCreation(
     teamId: string | undefined,
     userId: string,
   ): Promise<void> {
-    // Admin pode criar em qualquer time
     if (await this.isAdmin(userId)) {
       return;
     }
@@ -135,103 +109,118 @@ export class OwnershipService {
       );
     }
 
-    await this.validateTeamOwnership(teamId, userId);
+    // Aqui você pode adicionar lógica adicional se necessário
   }
 
   /**
-   * Valida se o supervisor tem acesso a uma máquina específica
-   */
-  async validateMachineOwnership(
-    machineId: string,
-    userId: string,
-    machinesRepository: Repository<any>,
-  ): Promise<void> {
-    // Admin pode tudo
-    if (await this.isAdmin(userId)) {
-      return;
-    }
-
-    const machine = await machinesRepository.findOne({
-      where: { id: machineId },
-      select: ['id', 'teamId'],
-    });
-
-    if (!machine) {
-      throw new NotFoundException('Máquina não encontrada');
-    }
-
-    if (!machine.teamId) {
-      throw new ForbiddenException(
-        'Esta máquina não está associada a nenhum time',
-      );
-    }
-
-    await this.validateTeamOwnership(machine.teamId, userId);
-  }
-
-  /**
-   * Valida se o supervisor tem acesso a um sub-time específico
+   * Valida se o usuário tem acesso a um sub-time
    */
   async validateSubtimeOwnership(
     subtimeId: string,
     userId: string,
     subtimesRepository: Repository<any>,
   ): Promise<void> {
-    // Admin pode tudo
     if (await this.isAdmin(userId)) {
       return;
     }
 
     const subtime = await subtimesRepository.findOne({
       where: { id: subtimeId },
-      select: ['id', 'parentTeamId'],
+      select: ['id', 'createdById'],
     });
 
     if (!subtime) {
       throw new NotFoundException('Sub-time não encontrado');
     }
 
-    if (!subtime.parentTeamId) {
+    if (subtime.createdById !== userId) {
       throw new ForbiddenException(
-        'Este sub-time não está associado a nenhum time pai',
+        'Você não tem permissão para acessar este sub-time. Apenas o criador pode visualizá-lo e editá-lo.',
       );
     }
-
-    await this.validateTeamOwnership(subtime.parentTeamId, userId);
   }
 
   /**
-   * Valida se o supervisor tem acesso a uma skill específica
+   * Valida se o usuário tem acesso a uma skill
    */
   async validateSkillOwnership(
     skillId: string,
     userId: string,
     skillsRepository: Repository<any>,
   ): Promise<void> {
-    // Admin pode tudo
     if (await this.isAdmin(userId)) {
       return;
     }
 
     const skill = await skillsRepository.findOne({
       where: { id: skillId },
-      relations: ['team', 'machine'],
-      select: ['id'],
+      select: ['id', 'createdById'],
     });
 
     if (!skill) {
       throw new NotFoundException('Skill não encontrada');
     }
 
-    // Skill pode estar associada a team ou machine
-    const teamId = skill.team?.id || skill.machine?.teamId;
-
-    if (!teamId) {
+    if (skill.createdById !== userId) {
       throw new ForbiddenException(
-        'Esta skill não está associada a nenhum time',
+        'Você não tem permissão para acessar esta skill. Apenas o criador pode visualizá-la e editá-la.',
       );
     }
+  }
 
-    await this.validateTeamOwnership(teamId, userId);
+  /**
+   * Valida se o usuário tem acesso a uma máquina
+   */
+  async validateMachineOwnership(
+    machineId: string,
+    userId: string,
+    machinesRepository: Repository<any>,
+  ): Promise<void> {
+    if (await this.isAdmin(userId)) {
+      return;
+    }
+
+    const machine = await machinesRepository.findOne({
+      where: { id: machineId },
+      select: ['id', 'createdById'],
+    });
+
+    if (!machine) {
+      throw new NotFoundException('Máquina não encontrada');
+    }
+
+    if (machine.createdById !== userId) {
+      throw new ForbiddenException(
+        'Você não tem permissão para acessar esta máquina. Apenas o criador pode visualizá-la e editá-la.',
+      );
+    }
+  }
+
+  /**
+   * Valida se o usuário tem acesso a uma avaliação
+   */
+  async validateEvaluationOwnership(
+    evaluationId: string,
+    userId: string,
+    evaluationsRepository: Repository<any>,
+  ): Promise<void> {
+    if (await this.isAdmin(userId)) {
+      return;
+    }
+
+    const evaluation = await evaluationsRepository.findOne({
+      where: { id: evaluationId },
+      select: ['id', 'createdById'],
+    });
+
+    if (!evaluation) {
+      throw new NotFoundException('Avaliação não encontrada');
+    }
+
+    if (evaluation.createdById !== userId) {
+      throw new ForbiddenException(
+        'Você não tem permissão para acessar esta avaliação. Apenas o criador pode visualizá-la e editá-la.',
+      );
+    }
   }
 }

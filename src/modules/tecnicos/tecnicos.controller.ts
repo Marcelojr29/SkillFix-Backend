@@ -87,15 +87,21 @@ export class TecnicosController {
   @ApiOperation({ summary: 'Criar novo técnico' })
   @ApiResponse({ status: 201, description: 'Técnico criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
-  create(@Body() createTecnicoDto: CreateTecnicoDto) {
-    return this.tecnicosService.create(createTecnicoDto);
+  create(
+    @Body() createTecnicoDto: CreateTecnicoDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.tecnicosService.create(createTecnicoDto, userId);
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar técnicos com filtros e paginação' })
   @ApiResponse({ status: 200, description: 'Lista de técnicos' })
-  findAll(@Query() query: QueryTecnicoDto) {
-    return this.tecnicosService.findAll(query);
+  findAll(
+    @Query() query: QueryTecnicoDto, 
+    @GetUser('id') userId: string
+  ) {
+    return this.tecnicosService.findAll(query, userId);
   }
 
   @Get(':id')
@@ -134,24 +140,25 @@ export class TecnicosController {
 
   @Post(':id/photo')
   @Roles(UserRole.MASTER)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('photo'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload de foto do técnico' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        file: {
+        photo: {
           type: 'string',
           format: 'binary',
         },
       },
     },
   })
-  uploadPhoto(
+  async uploadPhoto(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: any,
   ) {
+    console.log('Arquivo recebido:', file?.originalname);
     return this.tecnicosService.uploadPhoto(id, file);
   }
 

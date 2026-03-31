@@ -30,15 +30,18 @@ export class TeamsController {
   @Roles(UserRole.MASTER)
   @ApiOperation({ summary: 'Criar novo time' })
   @ApiResponse({ status: 201, description: 'Time criado com sucesso' })
-  create(@Body() createTeamDto: CreateTeamDto) {
-    return this.teamsService.create(createTeamDto);
+  create(
+    @Body() createTeamDto: CreateTeamDto,
+    @GetUser('id') userId: string,
+  ) {
+    return this.teamsService.create(createTeamDto, userId);
   }
 
   @Get()
   @ApiOperation({ summary: 'Listar todos os times' })
   @ApiResponse({ status: 200, description: 'Lista de times' })
-  findAll() {
-    return this.teamsService.findAll();
+  findAll(@GetUser('id') userId: string) {
+    return this.teamsService.findAll(userId);
   }
 
   @Get(':id')

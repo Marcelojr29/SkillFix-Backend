@@ -22,7 +22,10 @@
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts",
-    "db:reset": "ts-node src/database/reset-db.ts",
+    "db:reset-db": "ts-node src/database/reset-db.ts",
+    "db:reset": "ts-node scripts/reset.ts",
+    "db:seed": "npm run seed",
+    "db:full-reset": "npm run db:reset && npm run db:seed",
     "seed": "ts-node src/database/seeds/seed.ts"
   },
   "dependencies": {

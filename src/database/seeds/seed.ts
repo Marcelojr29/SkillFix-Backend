@@ -50,7 +50,7 @@ async function runSeed() {
   const tecnicoSkillRepository = dataSource.getRepository(TecnicoSkill);
 
   try {
-    // Limpar dados existentes usando TRUNCATE CASCADE para evitar problemas com FK
+    // Limpar dados existentes
     console.log('🧹 Limpando tabelas...');
     await dataSource.query('TRUNCATE TABLE tecnico_skills CASCADE');
     await dataSource.query('TRUNCATE TABLE tecnicos CASCADE');
@@ -64,8 +64,8 @@ async function runSeed() {
     await dataSource.query('TRUNCATE TABLE evaluation_criteria CASCADE');
     console.log('✅ Tabelas limpas\n');
 
-    // 1. Criar Usuário Admin
-    console.log('👤 Criando usuário admin...');
+    // 1. Criar Usuário Admin (apenas para desenvolvimento, NÃO é técnico)
+    console.log('👤 Criando usuário Admin (desenvolvedor - não é funcionário)...');
     const adminUser = userRepository.create({
       email: 'admin@skillfix.com',
       password: 'Admin@123',
@@ -74,21 +74,47 @@ async function runSeed() {
       isActive: true,
     });
     await userRepository.save(adminUser);
-    console.log(`✅ Admin criado: ${adminUser.email} / Admin@123\n`);
+    console.log(`✅ Admin criado: ${adminUser.email} / Admin@123`);
+    console.log('   OBS: Admin NÃO aparece na lista de técnicos (não é funcionário)\n');
 
-    // 2. Criar Supervisor (com permissão Master)
-    console.log('👤 Criando usuário supervisor...');
+    // 2. Criar Supervisor (cliente final - é funcionário e tem conta de usuário)
+    console.log('👤 Criando usuário Supervisor (cliente - é funcionário)...');
     const supervisorUser = userRepository.create({
-      email: 'supervisor@skillfix.com',
-      password: 'Supervisor@123',
-      name: 'João Supervisor',
+      email: 'jonatas.costa@skillfix.com',
+      password: 'Jonatas@123',
+      name: 'Jonatas Costa',
       role: UserRole.MASTER,
       isActive: true,
     });
     await userRepository.save(supervisorUser);
-    console.log(`✅ Supervisor criado: ${supervisorUser.email} / Supervisor@123\n`);
+    console.log(`✅ Supervisor criado: ${supervisorUser.email} / Jonatas@123\n`);
 
-    // 3. Criar Times
+    // 3. Criar o Supervisor também como Técnico (pois ele é funcionário)
+    console.log('👷 Criando Supervisor como técnico (funcionário da empresa)...');
+    const supervisorTecnico = tecnicoRepository.create({
+      name: 'Jonatas Costa',
+      workday: '958434',
+      cargo: 'Supervisor da Engenharia',
+      senioridade: Senioridade.SUPERVISOR,
+      area: Area.ENGENHARIA,
+      shift: Shift.PRIMEIRO,
+      department: 'MANUTENÇÃO',
+      gender: Gender.MASCULINO,
+      joinDate: new Date('2016-03-04'),
+      status: true,
+      // Supervisor não tem teamId ou subtimeId porque ele gerencia times, não pertence a um
+      email: 'jonatas.costa@skillfix.com',
+      hasUserAccount: true, // Vincula ao usuário criado acima
+    });
+    await tecnicoRepository.save(supervisorTecnico);
+    console.log(`✅ Supervisor adicionado à lista de técnicos (ID: ${supervisorTecnico.id})`);
+
+    // Atualizar o usuário com o tecnicoId
+    supervisorUser.tecnicoId = supervisorTecnico.id;
+    await userRepository.save(supervisorUser);
+    console.log(`   ✅ Usuário Supervisor vinculado ao técnico\n`);
+
+    // 4. Criar Times (usando o supervisorUser.id, não o tecnico.id)
     console.log('🏢 Criando times...');
     const timeProducao = teamRepository.create({
       name: 'Time de Produção',
@@ -116,9 +142,9 @@ async function runSeed() {
       status: true,
     });
     await teamRepository.save(timeQualidade);
-    console.log(`✅ 3 times criados\n`);
+    console.log(`✅ 3 times criados (supervisionados por ${supervisorUser.name})\n`);
 
-    // 4. Criar SubTimes
+    // 5. Criar SubTimes
     console.log('👨‍👩‍👧‍👦 Criando subtimes...');
     const subtimeInjecao = subtimeRepository.create({
       name: 'Subtime Injeção',
@@ -196,7 +222,7 @@ async function runSeed() {
     await subtimeRepository.save(subtimeManutencaoPreventiva);
     console.log(`✅ 3 subtimes criados\n`);
 
-    // 5. Criar Máquinas
+    // 6. Criar Máquinas
     console.log('🏭 Criando máquinas...');
     const maq001 = machineRepository.create({
       code: 'MAQ-001',
@@ -235,7 +261,7 @@ async function runSeed() {
     await machineRepository.save(maq003);
     console.log(`✅ 3 máquinas criadas\n`);
 
-    // 6. Criar Skills
+    // 7. Criar Skills
     console.log('🔧 Criando skills...');
     const skill1 = skillRepository.create({
       name: 'Operação de Injetora Básica',
@@ -290,8 +316,8 @@ async function runSeed() {
     await skillRepository.save(skill4);
     console.log(`✅ 4 skills criadas\n`);
 
-    // 7. Criar Técnicos
-    console.log('👷 Criando técnicos...');
+    // 8. Criar Técnicos (funcionários)
+    console.log('👷 Criando técnicos (funcionários)...');
     const tecnico1 = tecnicoRepository.create({
       name: 'João Silva Santos',
       workday: 'WDC00001',
@@ -355,9 +381,9 @@ async function runSeed() {
       subtimeId: subtimeManutencaoPreventiva.id,
     });
     await tecnicoRepository.save(tecnico4);
-    console.log(`✅ 4 técnicos criados\n`);
+    console.log(`✅ 4 técnicos criados (mais o Supervisor já criado, total 5 técnicos)\n`);
 
-    // 8. Criar TecnicoSkills (relacionamento)
+    // 9. Criar TecnicoSkills (relacionamento)
     console.log('🔗 Criando relacionamentos técnico-skill...');
     const ts1 = tecnicoSkillRepository.create({
       tecnicoId: tecnico1.id,
@@ -398,21 +424,49 @@ async function runSeed() {
       notes: 'Certificada em manutenção industrial',
     });
     await tecnicoSkillRepository.save(ts5);
-    console.log(`✅ 5 relacionamentos técnico-skill criados\n`);
+
+    // Skills do Supervisor
+    const tsSupervisor = tecnicoSkillRepository.create({
+      tecnicoId: supervisorTecnico.id,
+      skillId: skill1.id,
+      score: 98.00,
+      notes: 'Excelente conhecimento em operação',
+    });
+    await tecnicoSkillRepository.save(tsSupervisor);
+    
+    const tsSupervisor2 = tecnicoSkillRepository.create({
+      tecnicoId: supervisorTecnico.id,
+      skillId: skill2.id,
+      score: 96.00,
+      notes: 'Especialista em setup avançado',
+    });
+    await tecnicoSkillRepository.save(tsSupervisor2);
+    console.log(`✅ 7 relacionamentos técnico-skill criados (5 técnicos + 2 do Supervisor)\n`);
 
     console.log('='.repeat(60));
     console.log('✅ SEED CONCLUÍDO COM SUCESSO!\n');
     console.log('📊 Resumo dos dados criados:');
-    console.log('   • 2 usuários (admin + supervisor)');
+    console.log('   • 2 usuários do sistema:');
+    console.log('     - Admin (desenvolvedor): admin@skillfix.com (NÃO é técnico)');
+    console.log('     - Supervisor (cliente): supervisor@skillfix.com (É técnico)');
+    console.log('   • 5 técnicos (funcionários):');
+    console.log('     - João Supervisor (cargo: Supervisor)');
+    console.log('     - João Silva Santos (cargo: Operador)');
+    console.log('     - Maria Oliveira Costa (cargo: Operador)');
+    console.log('     - Carlos Eduardo Pereira (cargo: Operador)');
+    console.log('     - Ana Paula Rodrigues (cargo: Técnico de Manutenção)');
     console.log('   • 3 times');
     console.log('   • 3 subtimes');
     console.log('   • 3 máquinas');
     console.log('   • 4 skills');
-    console.log('   • 4 técnicos');
-    console.log('   • 5 relacionamentos técnico-skill\n');
+    console.log('   • 7 relacionamentos técnico-skill\n');
     console.log('🔑 Credenciais de acesso:');
-    console.log('   Admin: admin@skillfix.com / Admin@123');
-    console.log('   Supervisor: supervisor@skillfix.com / Supervisor@123\n');
+    console.log('   Admin (desenvolvedor): admin@skillfix.com / Admin@123');
+    console.log('   Supervisor (cliente): supervisor@skillfix.com / Supervisor@123\n');
+    console.log('📍 Onde aparece cada um:');
+    console.log('   • Admin: apenas em /usuarios');
+    console.log('   • Supervisor: em /usuarios E em /tecnicos (é funcionário)');
+    console.log('   • Demais técnicos: apenas em /tecnicos\n');
     console.log('='.repeat(60));
 
   } catch (error) {

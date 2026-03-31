@@ -37,6 +37,14 @@ export class Team {
   @JoinColumn({ name: 'managerId' })
   manager?: any;
 
+  // NOVO: Campo para registrar quem criou o time
+  @Column({ name: 'created_by', nullable: true })
+  createdById?: string;
+
+  @ManyToOne('User')
+  @JoinColumn({ name: 'created_by' })
+  createdBy?: any;
+
   @Column({ default: true })
   status: boolean;
 

@@ -18,6 +18,7 @@ import { TecnicosModule } from './modules/tecnicos/tecnicos.module';
 import { QuarterlyNotesModule } from './modules/quarterly-notes/quarterly-notes.module';
 import { AvaliacoesModule } from './modules/avaliacoes/avaliacoes.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { DatabaseModule } from './modules/database/database.module';
 
 // Guards
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -47,6 +48,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     QuarterlyNotesModule,
     AvaliacoesModule,
     AnalyticsModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [

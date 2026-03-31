@@ -14,17 +14,29 @@ export class TeamsService {
     private ownershipService: OwnershipService,
   ) {}
 
-  async create(createTeamDto: CreateTeamDto): Promise<Team> {
-    const team = this.teamsRepository.create(createTeamDto);
+  async create(createTeamDto: CreateTeamDto, userId: string): Promise<Team> {
+    const team = this.teamsRepository.create({
+      ...createTeamDto,
+      createdById: userId,
+    });
     return this.teamsRepository.save(team);
   }
 
-  async findAll(): Promise<Team[]> {
-    return this.teamsRepository.find({
-      relations: ['supervisor', 'manager', 'subtimes', 'tecnicos'],
-      where: { status: true },
-      order: { name: 'ASC' },
-    });
+  async findAll(userId: string): Promise<Team[]> {
+    const queryBuilder = this.teamsRepository
+      .createQueryBuilder('team')
+      .leftJoinAndSelect('team.supervisor', 'supervisor')
+      .leftJoinAndSelect('team.manager', 'manager')
+      .leftJoinAndSelect('team.subtimes', 'subtimes')
+      .leftJoinAndSelect('team.tecnicos', 'tecnicos')
+      .where('team.status = :status', { status: true });
+
+    const isAdmin = await this.ownershipService.isAdmin(userId);
+    if (!isAdmin) {
+      queryBuilder.andWhere('team.createdById = :userId', { userId });
+    }
+
+    return queryBuilder.orderBy('team.name', 'ASC').getMany();
   }
 
   async findOne(id: string): Promise<Team> {
@@ -52,7 +64,7 @@ export class TeamsService {
 
   async update(id: string, updateTeamDto: UpdateTeamDto, userId: string): Promise<Team> {
     // Validar ownership antes de atualizar
-    await this.ownershipService.validateTeamOwnership(id, userId);
+    await this.ownershipService.validateTeamOwnership(id, userId, this.teamsRepository);
 
     const team = await this.findOne(id);
     Object.assign(team, updateTeamDto);
@@ -61,7 +73,7 @@ export class TeamsService {
 
   async remove(id: string, userId: string): Promise<{ message: string }> {
     // Validar ownership antes de deletar
-    await this.ownershipService.validateTeamOwnership(id, userId);
+    await this.ownershipService.validateTeamOwnership(id, userId, this.teamsRepository);
 
     const team = await this.findOne(id);
     team.status = false;
