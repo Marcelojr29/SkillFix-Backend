@@ -459,6 +459,73 @@ export const DashboardPage = () => {
 
 ---
 
+### 9. Desempenho por Turno (Shift Performance)
+
+**GET /analytics/shift-performance**
+
+**Status:** ✅ Implementado
+
+Retorna a evolução mensal da pontuação média de técnicos agrupados por turno.
+
+**Query Params:**
+- `year`: ano para filtrar as avaliações (opcional, default: ano atual)
+- `quarter`: trimestre específico 1-4 (opcional, se não informado retorna ano completo)
+
+**Exemplos:**
+```http
+GET /analytics/shift-performance
+GET /analytics/shift-performance?year=2026
+GET /analytics/shift-performance?year=2026&quarter=2
+```
+
+**Resposta (200):**
+```json
+[
+  {
+    "month": "Jan",
+    "monthNumber": 1,
+    "1T": 85.5,
+    "2T": 82.3,
+    "3T": 78.9,
+    "ADM": 86.2,
+    "Especial": 84.1
+  },
+  {
+    "month": "Fev",
+    "monthNumber": 2,
+    "1T": 87.2,
+    "2T": 84.1,
+    "3T": 80.5,
+    "ADM": 88.0,
+    "Especial": 85.3
+  },
+  {
+    "month": "Mar",
+    "monthNumber": 3,
+    "1T": 88.1,
+    "2T": 86.0,
+    "3T": 81.2,
+    "ADM": 87.5,
+    "Especial": 86.0
+  }
+  // ... até Dezembro (ou meses do trimestre específico)
+]
+```
+
+**Caso sem avaliações:**
+```json
+[]
+```
+
+**Detalhes:**
+- Pontuações são médias mensais por turno (0-100)
+- Turnos: `1T` (1º Turno), `2T` (2º Turno), `3T` (3º Turno), `ADM` (Administrativo)
+- Campo `Especial` é opcional e aparece apenas se houver dados para esse turno
+- Se um turno não tiver avaliações em um mês, retorna `0`
+- Útil para gráfico de linha "Pontuação Anual por Turno" na tela Home
+
+---
+
 ## 📝 Notas
 
 1. **Dashboard:** Visão geral com KPIs principais do sistema
@@ -467,5 +534,6 @@ export const DashboardPage = () => {
 4. **Skills Críticas:** Identifica habilidades que precisam de atenção
 5. **Evolução:** Acompanhamento temporal por time
 6. **Quarterly Report:** Relatório consolidado por trimestre
-7. **Performance:** Endpoints podem ser cacheados no frontend para melhor performance
-8. **Exportação:** Considere adicionar exportação para Excel/PDF no frontend
+7. **Shift Performance:** Evolução mensal de desempenho por turno
+8. **Performance:** Endpoints podem ser cacheados no frontend para melhor performance
+9. **Exportação:** Considere adicionar exportação para Excel/PDF no frontend

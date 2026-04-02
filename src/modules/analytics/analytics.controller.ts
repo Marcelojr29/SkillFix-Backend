@@ -175,4 +175,32 @@ export class AnalyticsController {
   ) {
     return this.analyticsService.getMachinesByShift(teamId, quarter, year);
   }
+
+  @Get('shift-performance')
+  @ApiOperation({ 
+    summary: 'Desempenho por turno ao longo do ano',
+    description: 'Retorna a evolução mensal da pontuação média de técnicos agrupados por turno'
+  })
+  @ApiQuery({
+    name: 'year',
+    required: false,
+    type: Number,
+    description: 'Ano para filtrar as avaliações (default: ano atual)',
+  })
+  @ApiQuery({
+    name: 'quarter',
+    required: false,
+    type: Number,
+    description: 'Trimestre específico (1-4). Se não informado, retorna ano completo',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dados de desempenho mensal por turno',
+  })
+  getShiftPerformance(
+    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
+  ) {
+    return this.analyticsService.getShiftPerformance(year, quarter);
+  }
 }

@@ -500,6 +500,109 @@ export class AnalyticsService {
     return result;
   }
 
+  async getShiftPerformance(year?: number, quarter?: number) {
+    // Define o ano alvo (default: ano atual)
+    const targetYear = year || new Date().getFullYear();
+
+    // Cria query base para buscar avaliações
+    const query = this.evaluationsRepository
+      .createQueryBuilder('evaluation')
+      .leftJoinAndSelect('evaluation.tecnico', 'tecnico')
+      .where('evaluation.year = :year', { year: targetYear })
+      .andWhere('tecnico.status = :status', { status: true });
+
+    // Filtra por trimestre se informado
+    if (quarter) {
+      query.andWhere('evaluation.quarter = :quarter', { quarter });
+    }
+
+    const evaluations = await query.getMany();
+
+    // Estrutura para armazenar dados agrupados por mês e turno
+    const monthlyData: {
+      [month: number]: {
+        [shift: string]: { total: number; count: number };
+      };
+    } = {};
+
+    // Agrupa avaliações por mês e turno
+    evaluations.forEach((evaluation) => {
+      const evaluationDate = new Date(evaluation.evaluationDate);
+      const month = evaluationDate.getMonth() + 1; // 1-12
+      const shift = evaluation.tecnico?.shift || 'ADM';
+      const score = Number(evaluation.totalScore) || 0;
+
+      // ---------------------------------------------------------
+      // Inicializa estrutura do mês se não existir
+      if (!monthlyData[month]) {
+        monthlyData[month] = {};
+      }
+
+      // Inicializa estrutura do turno se não existir
+      if (!monthlyData[month][shift]) {
+        monthlyData[month][shift] = { total: 0, count: 0 };
+      }
+
+      // Acumula scores
+      monthlyData[month][shift].total += score;
+      monthlyData[month][shift].count += 1;
+    });
+
+    // Nomes dos meses
+    const monthNames = [
+      'Jan',
+      'Fev',
+      'Mar',
+      'Abr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Set',
+      'Out',
+      'Nov',
+      'Dez',
+    ];
+
+    // Define range de meses baseado no trimestre
+    let startMonth = 1;
+    let endMonth = 12;
+
+    if (quarter) {
+      startMonth = (quarter - 1) * 3 + 1;
+      endMonth = quarter * 3;
+    }
+
+    // Monta resposta formatada
+    const result = [];
+    for (let month = startMonth; month <= endMonth; month++) {
+      const shifts = monthlyData[month] || {};
+
+      const calculateShiftAverage = (shift: string): number => {
+        if (!shifts[shift] || shifts[shift].count === 0) return 0;
+        return Math.round((shifts[shift].total / shifts[shift].count) * 10) / 10;
+      };
+
+      const monthData: any = {
+        month: monthNames[month - 1],
+        monthNumber: month,
+        '1T': calculateShiftAverage('1T'),
+        '2T': calculateShiftAverage('2T'),
+        '3T': calculateShiftAverage('3T'),
+        'ADM': calculateShiftAverage('ADM'),
+      };
+
+      // Adiciona turno especial se houver dados
+      if (shifts['Especial']) {
+        monthData['Especial'] = calculateShiftAverage('Especial');
+      }
+
+      result.push(monthData);
+    }
+
+    return result;
+  }
+
   private calculateAverage(scores: number[]): number {
     if (scores.length === 0) return 0;
     const sum = scores.reduce((a, b) => a + b, 0);
