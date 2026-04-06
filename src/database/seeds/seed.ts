@@ -16,13 +16,9 @@ config();
 async function runSeed() {
   console.log('🌱 Iniciando seed do banco de dados...\n');
 
-  const dataSource = new DataSource({
+  // Configuração para suportar DATABASE_URL (Render) ou variáveis individuais
+  const dataSourceConfig: any = {
     type: 'postgres',
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-    username: process.env.DATABASE_USER || 'skill_user',
-    password: process.env.DATABASE_PASSWORD || 'skill_password',
-    database: process.env.DATABASE_NAME || 'skill_db',
     entities: [
       User, 
       Team, 
@@ -37,7 +33,23 @@ async function runSeed() {
     ],
     synchronize: false,
     logging: false,
-  });
+  };
+
+  // Prioriza DATABASE_URL (Render) sobre configurações individuais
+  if (process.env.DATABASE_URL) {
+    dataSourceConfig.url = process.env.DATABASE_URL;
+    dataSourceConfig.ssl = {
+      rejectUnauthorized: false
+    };
+  } else {
+    dataSourceConfig.host = process.env.DATABASE_HOST || 'localhost';
+    dataSourceConfig.port = parseInt(process.env.DATABASE_PORT || '5432', 10);
+    dataSourceConfig.username = process.env.DATABASE_USER || 'skill_user';
+    dataSourceConfig.password = process.env.DATABASE_PASSWORD || 'skill_password';
+    dataSourceConfig.database = process.env.DATABASE_NAME || 'skill_db';
+  }
+
+  const dataSource = new DataSource(dataSourceConfig);
   
   await dataSource.initialize();
 
