@@ -101,6 +101,13 @@ export class Tecnico {
   @JoinColumn({ name: 'subtimeId' })
   subtime?: any;
 
+  @Column({ nullable: true })
+  led_subtime_id?: string;
+
+  @ManyToOne('SubTeam', { nullable: true })
+  @JoinColumn({ name: 'led_subtime_id' })
+  ledSubtime?: any;
+
   @Column({ name: 'created_by', nullable: true })
   createdById?: string;
 

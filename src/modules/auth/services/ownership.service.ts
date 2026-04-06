@@ -5,13 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { User, UserRole } from '../../users/entities/user.entity';
+import { Tecnico } from '../../tecnicos/entities/tecnico.entity';
 
 @Injectable()
 export class OwnershipService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Tecnico)
+    private tecnicosRepository: Repository<Tecnico>,
   ) {}
 
   /**
@@ -220,6 +223,211 @@ export class OwnershipService {
     if (evaluation.createdById !== userId) {
       throw new ForbiddenException(
         'Você não tem permissão para acessar esta avaliação. Apenas o criador pode visualizá-la e editá-la.',
+      );
+    }
+  }
+
+  /**
+   * Obtém o role do usuário
+   */
+  async getUserRole(userId: string): Promise<UserRole> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return user.role;
+  }
+
+  /**
+   * Verifica se usuário é coordenador
+   */
+  async isCoordenador(userId: string): Promise<boolean> {
+    const role = await this.getUserRole(userId);
+    return role === UserRole.COORDENADOR;
+  }
+
+  /**
+   * Verifica se usuário é supervisor
+   */
+  async isSupervisor(userId: string): Promise<boolean> {
+    const role = await this.getUserRole(userId);
+    return role === UserRole.SUPERVISOR;
+  }
+
+  /**
+   * Obtém o técnico vinculado ao usuário (para Supervisores e Coordenadores)
+   */
+  async getUserTecnico(userId: string): Promise<Tecnico | null> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['tecnico', 'tecnico.ledSubtime', 'tecnico.team'],
+    });
+
+    return user?.tecnico || null;
+  }
+
+  /**
+   * Valida se coordenador tem acesso a um técnico específico
+   * Regra: Coordenador só pode acessar técnicos do SUB-TIME que ele lidera
+   */
+  async validateCoordenadorTecnicoAccess(
+    tecnicoId: string,
+    userId: string,
+  ): Promise<void> {
+    // Admin sempre tem acesso
+    if (await this.isAdmin(userId)) {
+      return;
+    }
+
+    const role = await this.getUserRole(userId);
+    
+    // Se for supervisor, usar validação antiga (por createdById)
+    if (role === UserRole.SUPERVISOR) {
+      const tecnico = await this.tecnicosRepository.findOne({
+        where: { id: tecnicoId },
+        select: ['id', 'createdById'],
+      });
+
+      if (!tecnico) {
+        throw new NotFoundException('Técnico não encontrado');
+      }
+
+      if (tecnico.createdById !== userId) {
+        throw new ForbiddenException(
+          'Você não tem permissão para acessar este técnico.',
+        );
+      }
+      return;
+    }
+
+    // Se for coordenador, validar por sub-time
+    if (role === UserRole.COORDENADOR) {
+      const coordenadorTecnico = await this.tecnicosRepository.findOne({
+        where: { user: { id: userId } },
+        select: ['id', 'led_subtime_id'],
+      });
+      
+      if (!coordenadorTecnico || !coordenadorTecnico.led_subtime_id) {
+        throw new ForbiddenException(
+          'Você não está vinculado a nenhum sub-time como coordenador',
+        );
+      }
+
+      const tecnico = await this.tecnicosRepository.findOne({
+        where: { id: tecnicoId },
+        select: ['id', 'subtimeId'],
+      });
+
+      if (!tecnico) {
+        throw new NotFoundException('Técnico não encontrado');
+      }
+
+      // Verificar se o técnico pertence ao sub-time liderado
+      if (tecnico.subtimeId !== coordenadorTecnico.led_subtime_id) {
+        throw new ForbiddenException(
+          'Você só pode acessar técnicos do seu sub-time',
+        );
+      }
+      return;
+    }
+
+    throw new ForbiddenException('Acesso não autorizado');
+  }
+
+  /**
+   * Valida se coordenador/supervisor tem acesso para criar avaliação de um técnico
+   */
+  async validateCanEvaluateTecnico(
+    tecnicoId: string,
+    userId: string,
+  ): Promise<void> {
+    // Usar mesma lógica de acesso a técnico
+    await this.validateCoordenadorTecnicoAccess(tecnicoId, userId);
+  }
+
+  /**
+   * Filtra técnicos baseado no role do usuário
+   * - Admin: vê todos
+   * - Supervisor: vê os que criou
+   * - Coordenador: vê apenas dos sub-times que lidera
+   */
+  async getAccessibleTecnicosSubtimeIds(userId: string): Promise<string[]> {
+    const role = await this.getUserRole(userId);
+
+    if (role === UserRole.COORDENADOR) {
+      // Buscar o técnico vinculado ao usuário
+      const user = await this.usersRepository.findOne({
+        where: { id: userId },
+        relations: ['tecnico'],
+      });
+
+      if (!user || !user.tecnico) {
+        return [];
+      }
+
+      const coordenador = await this.tecnicosRepository.findOne({
+        where: { id: user.tecnico.id },
+        select: ['id', 'led_subtime_id'],
+      });
+      
+      if (!coordenador?.led_subtime_id) {
+        return [];
+      }
+      
+      return [coordenador.led_subtime_id];
+    }
+
+    return []; // Admin e Supervisor usam outras lógicas
+  }
+
+  /**
+   * Retorna o ID do sub-time liderado pelo coordenador (compatibilidade)
+   */
+  async getAccessibleTecnicosSubtimeId(userId: string): Promise<string | null> {
+    const subtimeIds = await this.getAccessibleTecnicosSubtimeIds(userId);
+    return subtimeIds.length > 0 ? subtimeIds[0] : null;
+  }
+
+  /**
+   * Valida se coordenador não pode criar/deletar técnicos
+   */
+  async validateCanCreateTecnico(userId: string): Promise<void> {
+    const role = await this.getUserRole(userId);
+
+    if (role === UserRole.COORDENADOR) {
+      throw new ForbiddenException(
+        'Coordenadores não podem criar técnicos. Entre em contato com seu supervisor.',
+      );
+    }
+  }
+
+  /**
+   * Valida se coordenador não pode deletar técnicos permanentemente
+   */
+  async validateCanDeleteTecnico(userId: string): Promise<void> {
+    const role = await this.getUserRole(userId);
+
+    if (role === UserRole.COORDENADOR) {
+      throw new ForbiddenException(
+        'Coordenadores não podem deletar técnicos permanentemente. Você pode apenas desativar.',
+      );
+    }
+  }
+
+  /**
+   * Valida se coordenador não pode criar/editar times e sub-times
+   */
+  async validateCanManageTeams(userId: string): Promise<void> {
+    const role = await this.getUserRole(userId);
+
+    if (role === UserRole.COORDENADOR) {
+      throw new ForbiddenException(
+        'Coordenadores não podem gerenciar times ou sub-times.',
       );
     }
   }

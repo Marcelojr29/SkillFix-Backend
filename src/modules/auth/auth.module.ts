@@ -7,12 +7,14 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { OwnershipService } from './services/ownership.service';
+import { CoordenadorSubTimeGuard } from './guards/coordenador-subtime.guard';
 import { User } from '../users/entities/user.entity';
 import { Team } from '../teams/entities/team.entity';
+import { Tecnico } from '../tecnicos/entities/tecnico.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Team]),
+    TypeOrmModule.forFeature([User, Team, Tecnico]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -26,7 +28,14 @@ import { Team } from '../teams/entities/team.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, OwnershipService],
-  exports: [AuthService, JwtStrategy, PassportModule, JwtModule, OwnershipService],
+  providers: [AuthService, JwtStrategy, OwnershipService, CoordenadorSubTimeGuard],
+  exports: [
+    AuthService,
+    JwtStrategy,
+    PassportModule,
+    JwtModule,
+    OwnershipService,
+    CoordenadorSubTimeGuard,
+  ],
 })
 export class AuthModule {}

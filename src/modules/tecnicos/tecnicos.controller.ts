@@ -27,6 +27,7 @@ import { UpdateTecnicoDto } from './dto/update-tecnico.dto';
 import { QueryTecnicoDto } from './dto/query-tecnico.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CoordenadorSubTimeGuard } from '../auth/guards/coordenador-subtime.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
@@ -39,10 +40,10 @@ export class TecnicosController {
   constructor(private readonly tecnicosService: TecnicosService) {}
 
   @Post('with-photo')
-  @Roles(UserRole.MASTER)
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR)
   @UseInterceptors(FileInterceptor('photo'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Criar novo técnico com foto' })
+  @ApiOperation({ summary: 'Criar novo técnico com foto (Admin e Supervisor apenas)' })
   @ApiResponse({ status: 201, description: 'Técnico criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiBody({
@@ -83,8 +84,8 @@ export class TecnicosController {
   }
 
   @Post()
-  @Roles(UserRole.MASTER)
-  @ApiOperation({ summary: 'Criar novo técnico' })
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR)
+  @ApiOperation({ summary: 'Criar novo técnico (Admin e Supervisor apenas)' })
   @ApiResponse({ status: 201, description: 'Técnico criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   create(
@@ -113,8 +114,9 @@ export class TecnicosController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.MASTER)
-  @ApiOperation({ summary: 'Atualizar técnico' })
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR, UserRole.COORDENADOR)
+  @UseGuards(JwtAuthGuard, RolesGuard, CoordenadorSubTimeGuard)
+  @ApiOperation({ summary: 'Atualizar técnico (Coordenador: apenas do seu sub-time)' })
   @ApiResponse({ status: 200, description: 'Técnico atualizado' })
   @ApiResponse({ status: 404, description: 'Técnico não encontrado' })
   @ApiResponse({ status: 403, description: 'Sem permissão para editar este técnico' })
@@ -127,8 +129,9 @@ export class TecnicosController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.MASTER)
-  @ApiOperation({ summary: 'Deletar técnico (soft delete)' })
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR, UserRole.COORDENADOR)
+  @UseGuards(JwtAuthGuard, RolesGuard, CoordenadorSubTimeGuard)
+  @ApiOperation({ summary: 'Desativar técnico (soft delete)' })
   @ApiResponse({ status: 200, description: 'Técnico desativado' })
   @ApiResponse({ status: 403, description: 'Sem permissão para deletar este técnico' })
   remove(
@@ -139,10 +142,11 @@ export class TecnicosController {
   }
 
   @Post(':id/photo')
-  @Roles(UserRole.MASTER)
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR, UserRole.COORDENADOR)
+  @UseGuards(JwtAuthGuard, RolesGuard, CoordenadorSubTimeGuard)
   @UseInterceptors(FileInterceptor('photo'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload de foto do técnico' })
+  @ApiOperation({ summary: 'Upload de foto do técnico (Coordenador: apenas do seu sub-time)' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -162,6 +166,17 @@ export class TecnicosController {
     return this.tecnicosService.uploadPhoto(id, file);
   }
 
+  @Delete(':id/photo')
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR, UserRole.COORDENADOR)
+  @UseGuards(JwtAuthGuard, RolesGuard, CoordenadorSubTimeGuard)
+  @ApiOperation({ summary: 'Remover foto do técnico' })
+  @ApiResponse({ status: 200, description: 'Foto removida com sucesso' })
+  @ApiResponse({ status: 400, description: 'Técnico não possui foto' })
+  @ApiResponse({ status: 404, description: 'Técnico não encontrado' })
+  async deletePhoto(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tecnicosService.deletePhoto(id);
+  }
+
   @Get(':id/skills')
   @ApiOperation({ summary: 'Listar skills do técnico' })
   @ApiResponse({ status: 200, description: 'Skills do técnico' })
@@ -170,8 +185,9 @@ export class TecnicosController {
   }
 
   @Patch(':id/skills/:skillId')
-  @Roles(UserRole.MASTER)
-  @ApiOperation({ summary: 'Atualizar score de uma skill' })
+  @Roles(UserRole.MASTER, UserRole.SUPERVISOR, UserRole.COORDENADOR)
+  @UseGuards(JwtAuthGuard, RolesGuard, CoordenadorSubTimeGuard)
+  @ApiOperation({ summary: 'Atualizar score de uma skill (Coordenador: apenas do seu sub-time)' })
   updateSkillScore(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('skillId', ParseUUIDPipe) skillId: string,

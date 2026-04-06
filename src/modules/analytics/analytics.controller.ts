@@ -3,8 +3,6 @@ import {
   Get,
   Query,
   UseGuards,
-  ParseIntPipe,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -38,7 +36,7 @@ export class AnalyticsController {
   @ApiResponse({ status: 200, description: 'Tendências de performance' })
   getPerformanceTrends(
     @Query('tecnicoId') tecnicoId?: string,
-    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+    @Query('year') year?: number,
   ) {
     return this.analyticsService.getPerformanceTrends(tecnicoId, year);
   }
@@ -64,9 +62,9 @@ export class AnalyticsController {
   })
   @ApiResponse({ status: 200, description: 'Top performers' })
   getTopPerformers(
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
-    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+    @Query('limit') limit?: number,
+    @Query('quarter') quarter?: number,
+    @Query('year') year?: number,
     @Query('senioridade') senioridade?: string,
   ) {
     return this.analyticsService.getTopPerformers(
@@ -98,8 +96,8 @@ export class AnalyticsController {
   @ApiQuery({ name: 'year', required: true, type: Number })
   @ApiResponse({ status: 200, description: 'Relatório trimestral' })
   getQuarterlyReport(
-    @Query('quarter', ParseIntPipe) quarter: number,
-    @Query('year', ParseIntPipe) year: number,
+    @Query('quarter') quarter: number,
+    @Query('year') year: number,
   ) {
     return this.analyticsService.getQuarterlyReport(quarter, year);
   }
@@ -138,8 +136,8 @@ export class AnalyticsController {
   })
   getSkillsByShift(
     @Query('teamId') teamId?: string,
-    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
-    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+    @Query('quarter') quarter?: number,
+    @Query('year') year?: number,
   ) {
     return this.analyticsService.getSkillsByShift(teamId, quarter, year);
   }
@@ -170,8 +168,8 @@ export class AnalyticsController {
   })
   getMachinesByShift(
     @Query('teamId') teamId?: string,
-    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
-    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
+    @Query('quarter') quarter?: number,
+    @Query('year') year?: number,
   ) {
     return this.analyticsService.getMachinesByShift(teamId, quarter, year);
   }
@@ -198,8 +196,8 @@ export class AnalyticsController {
     description: 'Dados de desempenho mensal por turno',
   })
   getShiftPerformance(
-    @Query('year', new ParseIntPipe({ optional: true })) year?: number,
-    @Query('quarter', new ParseIntPipe({ optional: true })) quarter?: number,
+    @Query('year') year?: number,
+    @Query('quarter') quarter?: number,
   ) {
     return this.analyticsService.getShiftPerformance(year, quarter);
   }

@@ -14,6 +14,8 @@ import * as bcrypt from 'bcrypt';
 
 export enum UserRole {
   MASTER = 'master',
+  SUPERVISOR = 'supervisor',
+  COORDENADOR = 'coordenador',
 }
 
 export enum Workday {

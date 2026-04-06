@@ -92,23 +92,32 @@ export class CreateTecnicoDto {
   subtimeId?: string;
 
   @ApiProperty({
-    example: 'supervisor@empresa.com',
-    description: 'E-mail do supervisor (obrigatório se senioridade = Supervisor)',
+    example: 'subtime-id-789',
+    description: 'ID do sub-time que o coordenador irá liderar (apenas se senioridade = Coordenador)',
     required: false,
   })
-  @ValidateIf((o) => o.senioridade === Senioridade.SUPERVISOR)
-  @IsNotEmpty({ message: 'E-mail é obrigatório para Supervisores' })
+  @IsUUID('4', { message: 'ledSubtimeId deve ser um UUID válido' })
+  @IsOptional()
+  ledSubtimeId?: string;
+
+  @ApiProperty({
+    example: 'supervisor@empresa.com',
+    description: 'E-mail do supervisor/coordenador (obrigatório se senioridade = Supervisor ou Coordenador)',
+    required: false,
+  })
+  @ValidateIf((o) => o.senioridade === Senioridade.SUPERVISOR || o.senioridade === Senioridade.COORDENADOR)
+  @IsNotEmpty({ message: 'E-mail é obrigatório para Supervisores e Coordenadores' })
   @IsEmail({}, { message: 'E-mail inválido' })
   @IsOptional()
   email?: string;
 
   @ApiProperty({
     example: 'Senha@123',
-    description: 'Senha do supervisor (obrigatório se senioridade = Supervisor)',
+    description: 'Senha do supervisor/coordenador (obrigatório se senioridade = Supervisor ou Coordenador)',
     required: false,
   })
-  @ValidateIf((o) => o.senioridade === Senioridade.SUPERVISOR)
-  @IsNotEmpty({ message: 'Senha é obrigatória para Supervisores' })
+  @ValidateIf((o) => o.senioridade === Senioridade.SUPERVISOR || o.senioridade === Senioridade.COORDENADOR)
+  @IsNotEmpty({ message: 'Senha é obrigatória para Supervisores e Coordenadores' })
   @IsString()
   @MinLength(8, { message: 'Senha deve ter no mínimo 8 caracteres' })
   @IsOptional()

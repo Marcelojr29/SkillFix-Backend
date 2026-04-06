@@ -6,6 +6,7 @@ Este documento descreve como integrar o sistema de fotos de técnicos no fronten
 - ✅ Cadastrar técnico com foto em um único request
 - ✅ Cadastrar técnico sem foto e adicionar depois
 - ✅ Atualizar/substituir foto de técnico existente
+- ✅ Remover foto de técnico existente
 - ✅ Visualizar fotos nas listagens e detalhes
 - ✅ Servir fotos como arquivos estáticos
 
@@ -307,7 +308,96 @@ async function uploadFotoTecnico(tecnicoId: string, file: File) {
 
 ---
 
-## 👀 Visualizar Fotos dos Técnicos
+## �️ Remover Foto do Técnico
+
+### **DELETE** `/api/v1/tecnicos/:id/photo`
+
+Remove a foto de um técnico existente.
+
+#### Headers
+```http
+Authorization: Bearer {token}
+```
+
+#### Permissões
+- Requer role: `MASTER`
+
+#### Parâmetros
+- `id` (UUID) - ID do técnico
+
+#### Exemplo JavaScript
+
+```typescript
+async function removerFotoTecnico(tecnicoId: string) {
+  const response = await fetch(`http://localhost:3000/api/v1/tecnicos/${tecnicoId}/photo`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error('Erro ao remover foto');
+  }
+  
+  return await response.json();
+}
+```
+
+#### Exemplo React
+
+```tsx
+const handleRemoverFoto = async (tecnicoId: string) => {
+  try {
+    const result = await axios.delete(
+      `http://localhost:3000/api/v1/tecnicos/${tecnicoId}/photo`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    console.log(result.data.message); // 'Foto removida com sucesso'
+    // Atualizar estado do técnico
+    setTecnico({ ...tecnico, photo: null });
+  } catch (error) {
+    console.error('Erro ao remover foto:', error);
+  }
+};
+```
+
+#### Resposta de Sucesso (200 OK)
+
+```json
+{
+  "message": "Foto removida com sucesso"
+}
+```
+
+#### Respostas de Erro
+
+**400 Bad Request - Técnico não possui foto**
+```json
+{
+  "statusCode": 400,
+  "message": "Este técnico não possui foto",
+  "error": "Bad Request"
+}
+```
+
+**404 Not Found - Técnico não encontrado**
+```json
+{
+  "statusCode": 404,
+  "message": "Técnico com ID {id} não encontrado",
+  "error": "Not Found"
+}
+```
+
+---
+
+## �👀 Visualizar Fotos dos Técnicos
 
 ### Acessar URL da Foto
 
