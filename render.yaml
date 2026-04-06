@@ -1,0 +1,69 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: skillfix-db
+    env: docker
+    plan: free
+    region: oregon
+    databaseName: skillfix_db
+    databaseUser: skillfix_user
+
+  # Web Service
+  - type: web
+    name: skillfix-backend
+    env: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: API_PREFIX
+        value: api/v1
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: skillfix-db
+          property: host
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: skillfix-db
+          property: port
+      - key: DATABASE_USER
+        fromDatabase:
+          name: skillfix-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: skillfix-db
+          property: password
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: skillfix-db
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRATION
+        value: 30d
+      - key: CORS_ORIGIN
+        value: https://skill-fix-frontend.vercel.app
+      - key: SWAGGER_TITLE
+        value: SkillFix API
+      - key: SWAGGER_DESCRIPTION
+        value: Sistema de gestão de colaboradores, avaliações e competências técnicas
+      - key: SWAGGER_VERSION
+        value: "1.0"
+      - key: SWAGGER_PATH
+        value: api/docs
+      - key: MAX_FILE_SIZE
+        value: 5242880
+      - key: ALLOWED_EXTENSIONS
+        value: jpg,jpeg,png,pdf
+      - key: UPLOAD_PATH
+        value: uploads/photos

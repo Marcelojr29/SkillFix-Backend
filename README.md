@@ -190,7 +190,35 @@ CORS_ORIGIN=http://localhost:3001,http://localhost:4200,https://seu-dominio.com
 - Refresh Token: 30 dias (padrão)
 - Configurável via `.env`
 
-## 📖 Documentação Completa
+## � Deploy em Produção
+
+### Render.com (Recomendado)
+Este projeto está pronto para deploy no Render. Guia completo disponível:
+
+📘 **[DEPLOY_RENDER.md](./DEPLOY_RENDER.md)** - Passo a passo completo para deploy
+
+**Recursos adicionais:**
+- [DEPLOY_README.md](./DEPLOY_README.md) - Informações importantes pré-deploy
+- [.env.render](./.env.render) - Template de variáveis de ambiente
+- [render.yaml](./render.yaml) - Configuração automatizada (opcional)
+- [scripts/generate-secrets.sh](./scripts/generate-secrets.sh) - Gerar JWT secrets
+
+**URLs de Produção:**
+- Backend: `https://skillfix-backend.onrender.com`
+- Frontend (Vercel): `https://skill-fix-frontend.vercel.app`
+- Swagger: `https://skillfix-backend.onrender.com/api/docs`
+
+### Outros Provedores
+O projeto inclui:
+- ✅ Dockerfile otimizado
+- ✅ .dockerignore configurado
+- ✅ CORS configurável
+- ✅ Variáveis de ambiente
+- ✅ Migrations automatizadas
+
+Compatível com: Railway, Fly.io, AWS ECS, Google Cloud Run, Azure, etc.
+
+## �📖 Documentação Completa
 
 Toda a documentação da API está disponível na pasta [docs/](./docs/):
 - [README.md](./docs/README.md) - Visão geral e guia de início rápido

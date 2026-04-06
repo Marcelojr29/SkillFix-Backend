@@ -23,8 +23,15 @@ async function bootstrap() {
   }));
 
   // CORS
+  const allowedOrigins = [
+    'http://localhost:4200',
+    'http://localhost:3001',
+    'https://skill-fix-frontend.vercel.app',
+    process.env.CORS_ORIGIN, // Permite configuração via variável de ambiente
+  ].filter(Boolean); // Remove valores undefined
+
   app.enableCors({
-    origin: ['http://localhost:4200', 'http://localhost:3001'],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
