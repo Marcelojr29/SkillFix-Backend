@@ -4,13 +4,13 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 export default registerAs(
   'database',
   (): TypeOrmModuleOptions => {
-    // Se DATABASE_URL estiver definida (Render, Heroku, etc), use ela
+    //Se DATABASE_URL estiver definida (Render, Heroku, etc), use ela
     if (process.env.DATABASE_URL) {
       return {
         type: 'postgres',
         url: process.env.DATABASE_URL,
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-        synchronize: process.env.NODE_ENV === 'development',
+        synchronize: process.env.AUTO_SCHEMA_SYNC === 'true', // Sincronização automática controlada
         logging: process.env.NODE_ENV === 'development',
         autoLoadEntities: true,
         migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],

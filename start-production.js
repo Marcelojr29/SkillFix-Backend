@@ -2,16 +2,20 @@ const { execSync } = require('child_process');
 
 console.log('🚀 Starting production server...');
 
-// Executar migrations
-try {
-  console.log('📊 Running database migrations...');
-  execSync('npm run typeorm migration:run -- -d dist/src/config/data-source.js', {
-    stdio: 'inherit',
-  });
-  console.log('✅ Migrations completed successfully');
-} catch (error) {
-  console.warn('⚠️  Migration failed or no migrations to run:', error.message);
-  // Continua mesmo se migrations falharem (pode já estar rodado)
+// Executar migrations apenas se AUTO_RUN_MIGRATIONS estiver ativo
+if (process.env.AUTO_RUN_MIGRATIONS === 'true') {
+  try {
+    console.log('📊 Running database migrations...');
+    execSync('npm run typeorm migration:run -- -d dist/src/config/data-source.js', {
+      stdio: 'inherit',
+    });
+    console.log('✅ Migrations completed successfully');
+  } catch (error) {
+    console.warn('⚠️  Migration failed or no migrations to run:', error.message);
+    // Continua mesmo se migrations falharem
+  }
+} else {
+  console.log('⏭️  Skipping migrations (AUTO_RUN_MIGRATIONS not set)');
 }
 
 // Executar seed apenas se a variável RUN_SEED estiver definida
