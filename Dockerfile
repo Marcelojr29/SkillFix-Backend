@@ -29,6 +29,9 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copiar arquivos compilados
 COPY --from=builder /app/dist ./dist
 
+# Copiar script de produção
+COPY --from=builder /app/start-production.js ./start-production.js
+
 # Copiar arquivos necessários para migrations e TypeORM
 COPY --from=builder /app/src/database ./src/database
 COPY --from=builder /app/src/config ./src/config
@@ -41,5 +44,5 @@ RUN mkdir -p uploads/photos
 # Expor porta
 EXPOSE 3000
 
-# Comando para iniciar a aplicação
-CMD ["node", "dist/src/main.js"]
+# Comando para iniciar a aplicação (com migrations automáticas)
+CMD ["node", "start-production.js"]
