@@ -7,8 +7,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Database')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('database')
 export class DatabaseController {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -39,11 +37,10 @@ export class DatabaseController {
   }
 
   @Post('seed')
-  @Roles(UserRole.MASTER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
-    summary: 'Executar seed (APENAS DESENVOLVIMENTO)',
-    description: 'Popula o banco com dados de teste'
+    summary: 'Executar seed (TEMPORÁRIO - SEM AUTENTICAÇÃO)',
+    description: 'Popula o banco com dados de teste - REMOVER PROTEÇÃO APÓS PRIMEIRO USO'
   })
   @ApiResponse({ status: 200, description: 'Seed executado com sucesso' })
   async runSeed() {
